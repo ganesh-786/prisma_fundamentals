@@ -1,0 +1,72 @@
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String?
+  password    String
+  createdAt   DateTime @default(now())
+
+  profile     Profile?
+  wallet      Wallet?
+  kyc         KYC?
+}
+
+model Profile {
+  id        String @id @default(uuid())
+  userId    String @unique
+  phone     String?
+  
+  user      User   @relation(fields: [userId], references: [id])
+}
+
+model KYC {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  status        KYCStatus @default(PENDING)
+
+  documentType  String   // citizenship, passport
+  docFrontUrl   String
+  docBackUrl    String
+
+  verifiedAt    DateTime?
+  rejectionReason String?
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+enum KYCStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Float    @default(0)
+
+  user      User     @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  walletId      String
+  amount        Float
+  type          TransactionType
+  status        TransactionStatus
+  referenceId   String? // external (eSewa, Stripe)
+  createdAt     DateTime @default(now())
+
+  wallet        Wallet @relation(fields: [walletId], references: [id])
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}

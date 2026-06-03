@@ -1,58 +1,92 @@
-const express = require("express");
+import "dotenv/config";
+import express from "express";
 import { PrismaClient } from "@prisma/client";
+import pg from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
+// 1. Create a native PostgreSQL connection pool using your environment variable
+// Explicitly pass ssl configuration required by hosted platforms like Render
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: true, // Required for Render direct pool links
+  },
 });
-const app = express();
 
+// 2. Instantiate the Prisma adapter with the pool
+const adapter = new PrismaPg(pool);
+
+// 3. Pass the adapter instance cleanly into your PrismaClient constructor
+const prisma = new PrismaClient({ adapter });
+
+const app = express();
 app.use(express.json());
 
+// Create student
 app.post("/students", async (req, res) => {
-  const { name, email } = req.body;
+  try {
+    const { name, email } = req.body;
 
-  const student = await prisma.student.create({
-    data: { name, email },
-  });
+    const student = await prisma.student.create({
+      data: { name, email },
+    });
 
-  res.json(student);
+    res.json(student);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
+// Create course
 app.post("/courses", async (req, res) => {
-  const { title, description } = req.body;
+  try {
+    const { title, description } = req.body;
 
-  const course = await prisma.course.create({
-    data: { title, description },
-  });
+    const course = await prisma.course.create({
+      data: { title, description },
+    });
 
-  res.json(course);
+    res.json(course);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
+// Enroll student
 app.post("/enroll", async (req, res) => {
-  const { studentId, courseId } = req.body;
+  try {
+    const { studentId, courseId } = req.body;
 
-  const enrollment = await prisma.enrollment.create({
-    data: {
-      studentId,
-      courseId,
-    },
-  });
+    const enrollment = await prisma.enrollment.create({
+      data: {
+        studentId,
+        courseId,
+      },
+    });
 
-  res.json(enrollment);
+    res.json(enrollment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
+// Get students with courses
 app.get("/students", async (req, res) => {
-  const students = await prisma.student.findMany({
-    include: {
-      enrollments: {
-        include: {
-          course: true,
+  try {
+    const students = await prisma.student.findMany({
+      include: {
+        enrollments: {
+          include: {
+            course: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  res.json(students);
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.listen(3000, () => {
