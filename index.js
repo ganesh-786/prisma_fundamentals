@@ -1,8 +1,11 @@
 import "dotenv/config";
 import express from "express";
-import { PrismaClient } from "@prisma/client";
 import pg from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
+
+// Safely extract PrismaClient from the default package export
+import prismaPackage from "@prisma/client";
+const { PrismaClient } = prismaPackage;
 
 // 1. Create a native PostgreSQL connection pool using your environment variable
 // Explicitly pass ssl configuration required by hosted platforms like Render
