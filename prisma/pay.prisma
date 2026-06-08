@@ -45,6 +45,8 @@ model Wallet {
   balance   Float    @default(0)
 
   user      User     @relation(fields: [userId], references: [id])
+  sentTransfers   Transfer[] @relation("SenderWallet")
+  receivedTransfers Transfer[] @relation("ReceiverWallet")
   transactions Transaction[]
 }
 
@@ -55,9 +57,12 @@ model Transaction {
   type          TransactionType
   status        TransactionStatus
   referenceId   String? // external (eSewa, Stripe)
+  transferId    String? // links to Transfer for double-entry
+  description   String?
   createdAt     DateTime @default(now())
 
-  wallet        Wallet @relation(fields: [walletId], references: [id])
+  wallet        Wallet       @relation(fields: [walletId], references: [id])
+  transfer      Transfer?    @relation(fields: [transferId], references: [id])
 }
 
 enum TransactionType {
@@ -69,4 +74,29 @@ enum TransactionStatus {
   PENDING
   SUCCESS
   FAILED
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Transfer {
+  id              String         @id @default(uuid())
+  senderWalletId  String
+  receiverWalletId String
+  amount          Float
+  description     String?
+  status          TransferStatus @default(PENDING)
+  createdAt       DateTime       @default(now())
+  completedAt     DateTime?
+
+  senderWallet    Wallet        @relation("SenderWallet", fields: [senderWalletId], references: [id])
+  receiverWallet  Wallet        @relation("ReceiverWallet", fields: [receiverWalletId], references: [id])
+  transactions    Transaction[]
+
+  @@index([senderWalletId])
+  @@index([receiverWalletId])
+  @@index([createdAt])
 }
